@@ -17,7 +17,11 @@ job('job_dsl_steps') {
     }
 
     steps {
-        shell("echo 'Hello World'")
+        shell("""
+            echo 'Hello World'
+            echo 'Running script'
+            /tmp/script.sh
+        """)
     }
 
 }
