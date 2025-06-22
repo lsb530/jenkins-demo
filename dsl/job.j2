@@ -1,0 +1,23 @@
+job('job_dsl_steps') {
+
+    description('This is my awesome Job')
+
+    parameters {
+        stringParam('Planet', defaultValue = 'world', description = 'This is the world')
+        booleanParam('FLAG', true)
+        choiceParam('OPTION', ['option 1 (default)', 'option 2', 'option 3'])
+    }
+
+    scm {
+        git('https://github.com/lsb530/jenkins-demo', 'main')
+    }
+
+    triggers {
+        cron('H 5 * * 7')
+    }
+
+    steps {
+        shell("echo 'Hello World'")
+    }
+
+}
