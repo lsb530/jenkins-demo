@@ -1,9 +1,10 @@
 pipeline {
-    agent any
-
-    environment {
-        JAVA_HOME = tool 'JDK21'
-        PATH      = "${JAVA_HOME}/bin:${env.PATH}"
+    // 기본 에이전트: openjdk:21-jdk 이미지 + 도커 소켓 마운트
+    agent {
+        docker {
+            image 'openjdk:21-jdk'
+            args  '-v /var/run/docker.sock:/var/run/docker.sock'
+        }
     }
 
     stages {
@@ -43,9 +44,16 @@ pipeline {
         }
 
         stage('Docker Build') {
-            when {
-                branch 'main'
+            when { branch 'main' }
+
+            // 이 스테이지만 별도 이미지(docker CLI)가 필요하므로 오버라이드
+            agent {
+                docker {
+                    image 'docker:24.0.5'
+                    args  '-v /var/run/docker.sock:/var/run/docker.sock'
+                }
             }
+
             steps {
                 echo '[5/6] Building Docker image…'
                 script {
@@ -60,9 +68,7 @@ pipeline {
         }
 
         stage('Deploy') {
-            when {
-                branch 'main'
-            }
+            when { branch 'main' }
             steps {
                 echo '[6/6] Deploying application…'
                 // 배포 스크립트 추가
