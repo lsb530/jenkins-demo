@@ -3,28 +3,32 @@ pipeline {
 
     environment {
         JAVA_HOME = tool 'JDK21'
-        PATH = "${JAVA_HOME}/bin:${env.PATH}"
+        PATH      = "${JAVA_HOME}/bin:${env.PATH}"
     }
 
     stages {
         stage('Checkout') {
             steps {
+                echo '[1/6] Checking out source…'
                 checkout scm
             }
         }
 
         stage('Build') {
             steps {
+                echo '[2/6] Cleaning & building…'
                 sh './gradlew clean build -x test'
             }
         }
 
         stage('Test') {
             steps {
+                echo '[3/6] Running tests…'
                 sh './gradlew test'
             }
             post {
                 always {
+                    echo '[3/6] Publishing JUnit results…'
                     junit '**/build/test-results/test/*.xml'
                 }
             }
@@ -32,6 +36,7 @@ pipeline {
 
         stage('Package') {
             steps {
+                echo '[4/6] Packaging application…'
                 sh './gradlew bootJar'
                 archiveArtifacts artifacts: 'build/libs/*.jar', fingerprint: true
             }
@@ -42,11 +47,14 @@ pipeline {
                 branch 'main'
             }
             steps {
+                echo '[5/6] Building Docker image…'
                 script {
-                    def appVersion = sh(script: './gradlew properties -q | grep "version:" | awk \'{print $2}\'', returnStdout: true).trim()
-                    def dockerImageName = "jenkins-demo:${appVersion}"
-                    
-                    sh "docker build -t ${dockerImageName} ."
+                    def version = sh(
+                        script: "./gradlew properties -q | grep '^version:' | awk '{print \$2}'",
+                        returnStdout: true
+                    ).trim()
+                    def imageName = "jenkins-demo:${version}"
+                    sh "docker build -t ${imageName} ."
                 }
             }
         }
@@ -56,23 +64,22 @@ pipeline {
                 branch 'main'
             }
             steps {
-                echo 'Deploying application...'
-                // Add actual deployment steps here
+                echo '[6/6] Deploying application…'
+                // 배포 스크립트 추가
             }
         }
     }
 
     post {
         always {
-            echo 'Pipeline execution completed'
+            echo '==> Pipeline completed, cleaning workspace…'
             cleanWs()
         }
         success {
-            echo 'Pipeline executed successfully!'
+            echo '✅ Pipeline succeeded!'
         }
         failure {
-            echo 'Pipeline execution failed!'
-            // Add notification steps here (email, Slack, etc.)
+            echo '❌ Pipeline failed!'
         }
     }
 }
